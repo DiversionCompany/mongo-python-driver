@@ -71,7 +71,7 @@ from pymongo import (
 )
 from pymongo.change_stream import ChangeStream, ClusterChangeStream
 from pymongo.client_options import ClientOptions
-from pymongo.client_session import _EmptyServerSession
+from pymongo.client_session import _EmptyServerSession, get_thread_client_session
 from pymongo.command_cursor import CommandCursor
 from pymongo.errors import (
     AutoReconnect,
@@ -1635,7 +1635,7 @@ class MongoClient(common.BaseObject, Generic[_DocumentType]):
             # The cursor will be closed later in a different session.
             if cursor_id or conn_mgr:
                 self._close_cursor_soon(cursor_id, address, conn_mgr)
-        if session and not explicit_session:
+        if session and not explicit_session and get_thread_client_session() is None:
             session._end_session(lock=locks_allowed)
 
     def _close_cursor_soon(
@@ -1817,6 +1817,10 @@ class MongoClient(common.BaseObject, Generic[_DocumentType]):
         if session:
             return session
 
+        thread_session = get_thread_client_session()
+        if thread_session is not None:
+            return thread_session
+
         try:
             # Don't make implicit sessions causally consistent. Applications
             # should always opt-in.
@@ -1835,6 +1839,11 @@ class MongoClient(common.BaseObject, Generic[_DocumentType]):
                 raise ValueError("'session' argument must be a ClientSession or None.")
             # Don't call end_session.
             yield session
+            return
+
+        thread_session = get_thread_client_session()
+        if thread_session is not None:
+            yield thread_session
             return
 
         s = self._ensure_session(session)
