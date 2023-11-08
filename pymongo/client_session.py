@@ -136,9 +136,11 @@ Classes
 from __future__ import annotations
 
 import collections
+import threading
 import time
 import uuid
 from collections.abc import Mapping as _Mapping
+from contextlib import contextmanager
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -149,7 +151,7 @@ from typing import (
     NoReturn,
     Optional,
     Type,
-    TypeVar,
+    TypeVar, Generator,
 )
 
 from bson.binary import Binary
@@ -198,10 +200,10 @@ class SessionOptions:
     """
 
     def __init__(
-        self,
-        causal_consistency: Optional[bool] = None,
-        default_transaction_options: Optional[TransactionOptions] = None,
-        snapshot: Optional[bool] = False,
+            self,
+            causal_consistency: Optional[bool] = None,
+            default_transaction_options: Optional[TransactionOptions] = None,
+            snapshot: Optional[bool] = False,
     ) -> None:
         if snapshot:
             if causal_consistency:
@@ -273,11 +275,11 @@ class TransactionOptions:
     """
 
     def __init__(
-        self,
-        read_concern: Optional[ReadConcern] = None,
-        write_concern: Optional[WriteConcern] = None,
-        read_preference: Optional[_ServerMode] = None,
-        max_commit_time_ms: Optional[int] = None,
+            self,
+            read_concern: Optional[ReadConcern] = None,
+            write_concern: Optional[WriteConcern] = None,
+            read_preference: Optional[_ServerMode] = None,
+            max_commit_time_ms: Optional[int] = None,
     ) -> None:
         self._read_concern = read_concern
         self._write_concern = write_concern
@@ -336,7 +338,7 @@ class TransactionOptions:
 
 
 def _validate_session_write_concern(
-    session: Optional[ClientSession], write_concern: Optional[WriteConcern]
+        session: Optional[ClientSession], write_concern: Optional[WriteConcern]
 ) -> Optional[ClientSession]:
     """Validate that an explicit session is not used with an unack'ed write.
 
@@ -369,10 +371,10 @@ class _TransactionContext:
         return self
 
     def __exit__(
-        self,
-        exc_type: Optional[Type[BaseException]],
-        exc_val: Optional[BaseException],
-        exc_tb: Optional[TracebackType],
+            self,
+            exc_type: Optional[Type[BaseException]],
+            exc_val: Optional[BaseException],
+            exc_tb: Optional[TracebackType],
     ) -> None:
         if self.__session.in_transaction:
             if exc_val is None:
@@ -495,11 +497,11 @@ class ClientSession:
     """
 
     def __init__(
-        self,
-        client: MongoClient,
-        server_session: Any,
-        options: SessionOptions,
-        implicit: bool,
+            self,
+            client: MongoClient,
+            server_session: Any,
+            options: SessionOptions,
+            implicit: bool,
     ) -> None:
         # A MongoClient, a _ServerSession, a SessionOptions, and a set.
         self._client: MongoClient = client
@@ -584,12 +586,12 @@ class ClientSession:
         return getattr(self.client, name)
 
     def with_transaction(
-        self,
-        callback: Callable[[ClientSession], _T],
-        read_concern: Optional[ReadConcern] = None,
-        write_concern: Optional[WriteConcern] = None,
-        read_preference: Optional[_ServerMode] = None,
-        max_commit_time_ms: Optional[int] = None,
+            self,
+            callback: Callable[[ClientSession], _T],
+            read_concern: Optional[ReadConcern] = None,
+            write_concern: Optional[WriteConcern] = None,
+            read_preference: Optional[_ServerMode] = None,
+            max_commit_time_ms: Optional[int] = None,
     ) -> _T:
         """Execute a callback in a transaction.
 
@@ -685,9 +687,9 @@ class ClientSession:
                 if self.in_transaction:
                     self.abort_transaction()
                 if (
-                    isinstance(exc, PyMongoError)
-                    and exc.has_error_label("TransientTransactionError")
-                    and _within_time_limit(start_time)
+                        isinstance(exc, PyMongoError)
+                        and exc.has_error_label("TransientTransactionError")
+                        and _within_time_limit(start_time)
                 ):
                     # Retry the entire transaction.
                     continue
@@ -702,15 +704,15 @@ class ClientSession:
                     self.commit_transaction()
                 except PyMongoError as exc:
                     if (
-                        exc.has_error_label("UnknownTransactionCommitResult")
-                        and _within_time_limit(start_time)
-                        and not _max_time_expired_error(exc)
+                            exc.has_error_label("UnknownTransactionCommitResult")
+                            and _within_time_limit(start_time)
+                            and not _max_time_expired_error(exc)
                     ):
                         # Retry the commit.
                         continue
 
                     if exc.has_error_label("TransientTransactionError") and _within_time_limit(
-                        start_time
+                            start_time
                     ):
                         # Retry the entire transaction.
                         break
@@ -720,11 +722,11 @@ class ClientSession:
                 return ret
 
     def start_transaction(
-        self,
-        read_concern: Optional[ReadConcern] = None,
-        write_concern: Optional[WriteConcern] = None,
-        read_preference: Optional[_ServerMode] = None,
-        max_commit_time_ms: Optional[int] = None,
+            self,
+            read_concern: Optional[ReadConcern] = None,
+            write_concern: Optional[WriteConcern] = None,
+            read_preference: Optional[_ServerMode] = None,
+            max_commit_time_ms: Optional[int] = None,
     ) -> ContextManager:
         """Start a multi-statement transaction.
 
@@ -838,7 +840,7 @@ class ClientSession:
         """
 
         def func(
-            _session: Optional[ClientSession], conn: Connection, _retryable: bool
+                _session: Optional[ClientSession], conn: Connection, _retryable: bool
         ) -> dict[str, Any]:
             return self._finish_transaction(conn, command_name)
 
@@ -981,11 +983,11 @@ class ClientSession:
                 self._server_session.inc_transaction_id()
 
     def _apply_to(
-        self,
-        command: MutableMapping[str, Any],
-        is_retryable: bool,
-        read_preference: _ServerMode,
-        conn: Connection,
+            self,
+            command: MutableMapping[str, Any],
+            is_retryable: bool,
+            read_preference: _ServerMode,
+            conn: Connection,
     ) -> None:
         self._check_ended()
         self._materialize()
@@ -1122,7 +1124,7 @@ class _ServerSessionPool(collections.deque):
         return _ServerSession(self.generation)
 
     def return_server_session(
-        self, server_session: _ServerSession, session_timeout_minutes: Optional[float]
+            self, server_session: _ServerSession, session_timeout_minutes: Optional[float]
     ) -> None:
         if session_timeout_minutes is not None:
             self._clear_stale(session_timeout_minutes)
@@ -1144,3 +1146,22 @@ class _ServerSessionPool(collections.deque):
             else:
                 # The remaining sessions also haven't timed out.
                 break
+
+
+_mongo_thread_local_storage = threading.local()
+
+
+@contextmanager
+def thread_client_session(session: ClientSession) -> Generator:
+    """
+    Set the session as the current active session for the thread during the context of this generator.
+    """
+    _mongo_thread_local_storage.session = session
+    try:
+        yield session
+    finally:
+        _mongo_thread_local_storage.session = None
+
+
+def get_thread_client_session() -> Optional[ClientSession]:
+    return getattr(_mongo_thread_local_storage, "session", None)

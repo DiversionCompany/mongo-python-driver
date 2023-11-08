@@ -34,6 +34,7 @@ from pymongo.errors import ConnectionFailure, InvalidOperation, OperationFailure
 from pymongo.message import _CursorAddress, _GetMore, _OpMsg, _OpReply, _RawBatchGetMore
 from pymongo.response import PinnedResponse
 from pymongo.typings import _Address, _DocumentOut, _DocumentType
+from pymongo.client_session import get_thread_client_session
 
 if TYPE_CHECKING:
     from pymongo.client_session import ClientSession
@@ -113,7 +114,7 @@ class CommandCursor(Generic[_DocumentType]):
         self.__sock_mgr = None
 
     def __end_session(self, synchronous: bool) -> None:
-        if self.__session and not self.__explicit_session:
+        if self.__session and not self.__explicit_session and get_thread_client_session() is None:
             self.__session._end_session(lock=synchronous)
             self.__session = None
 
