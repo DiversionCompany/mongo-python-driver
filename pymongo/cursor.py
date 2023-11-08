@@ -57,7 +57,6 @@ from pymongo.message import (
 from pymongo.response import PinnedResponse
 from pymongo.typings import _Address, _CollationIn, _DocumentOut, _DocumentType
 from pymongo.write_concern import validate_boolean
-from pymongo.client_session import get_thread_client_session
 
 if TYPE_CHECKING:
     from _typeshed import SupportsItems
@@ -1153,7 +1152,7 @@ class Cursor(Generic[_DocumentType]):
             return len(self.__data)
 
         if not self.__session:
-            self.__session = get_thread_client_session() or self.__collection.database.client._ensure_session()
+            self.__session = self.__collection.database.client._ensure_session()
 
         if self.__id is None:  # Query
             if (self.__min or self.__max) and not self.__hint:
