@@ -10,8 +10,6 @@ _IS_SYNC = False
 
 _mongo_thread_local_storage = threading.local()
 
-# The async client is not supported, we didn't implemented it yet
-
 
 @contextmanager
 def thread_client_session(session: AsyncClientSession) -> Generator:
