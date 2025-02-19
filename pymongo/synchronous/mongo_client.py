@@ -97,7 +97,6 @@ from pymongo.synchronous.client_bulk import _ClientBulk
 from pymongo.synchronous.client_session import _EmptyServerSession
 from pymongo.synchronous.command_cursor import CommandCursor
 from pymongo.synchronous.settings import TopologySettings
-from pymongo.synchronous.thread_client_session import get_thread_client_session
 from pymongo.synchronous.topology import Topology, _ErrorContext
 from pymongo.topology_description import TOPOLOGY_TYPE, TopologyDescription
 from pymongo.typings import (
@@ -1246,10 +1245,6 @@ class MongoClient(common.BaseObject, Generic[_DocumentType]):
         if session:
             return session
 
-        thread_session = get_thread_client_session()
-        if thread_session is not None:
-            return thread_session
-        
         try:
             # Don't make implicit sessions causally consistent. Applications
             # should always opt-in.
@@ -1923,7 +1918,7 @@ class MongoClient(common.BaseObject, Generic[_DocumentType]):
         # The cursor will be closed later in a different session.
         if cursor_id or conn_mgr:
             self._close_cursor_soon(cursor_id, address, conn_mgr)
-        if session and not explicit_session and get_thread_client_session() is None:
+        if session and not explicit_session:
             session._end_implicit_session()
 
     def _cleanup_cursor_lock(
@@ -1957,7 +1952,7 @@ class MongoClient(common.BaseObject, Generic[_DocumentType]):
                 self._close_cursor_now(cursor_id, address, session=session, conn_mgr=conn_mgr)
         if conn_mgr:
             conn_mgr.close()
-        if session and not explicit_session and get_thread_client_session() is None:
+        if session and not explicit_session:
             session._end_implicit_session()
 
     def _close_cursor_now(

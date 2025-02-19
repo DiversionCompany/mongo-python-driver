@@ -41,7 +41,6 @@ from pymongo.message import (
 )
 from pymongo.response import PinnedResponse
 from pymongo.synchronous.cursor import _ConnectionManager
-from pymongo.synchronous.thread_client_session import get_thread_client_session
 from pymongo.typings import _Address, _DocumentOut, _DocumentType
 
 if TYPE_CHECKING:
@@ -238,7 +237,7 @@ class CommandCursor(Generic[_DocumentType]):
         self._sock_mgr = None
 
     def _end_session(self) -> None:
-        if self._session and not self._explicit_session and get_thread_client_session() is None:
+        if self._session and not self._explicit_session:
             self._session._end_implicit_session()
             self._session = None
 

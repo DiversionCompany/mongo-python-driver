@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import threading
 from contextlib import contextmanager
 from typing import Generator, Optional
@@ -7,6 +9,8 @@ from pymongo.synchronous.client_session import ClientSession
 _IS_SYNC = True
 
 _mongo_thread_local_storage = threading.local()
+
+# The async client is not supported, we didn't implemented it yet
 
 
 @contextmanager
