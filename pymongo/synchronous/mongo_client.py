@@ -2093,6 +2093,11 @@ class MongoClient(common.BaseObject, Generic[_DocumentType]):
             yield session
             return
 
+        thread_session = get_thread_client_session()
+        if thread_session is not None:
+            yield thread_session
+            return
+
         s = self._ensure_session(session)
         if s:
             try:
