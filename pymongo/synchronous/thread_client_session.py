@@ -2,7 +2,7 @@ import threading
 from contextlib import contextmanager
 from typing import Generator
 
-from pymongo.synchronous.client_session import ClientSession
+from pymongo.synchronous.client_session import ClientSession, Optional
 
 _mongo_thread_local_storage = threading.local()
 
@@ -19,5 +19,5 @@ def thread_client_session(session: ClientSession) -> Generator:
         _mongo_thread_local_storage.session = None
 
 
-def get_thread_client_session() -> ClientSession | None:
+def get_thread_client_session() -> Optional[ClientSession]:
     return getattr(_mongo_thread_local_storage, "session", None)
