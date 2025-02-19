@@ -1,8 +1,8 @@
 import threading
 from contextlib import contextmanager
-from typing import Generator
+from typing import Generator, Optional
 
-from pymongo.synchronous.client_session import ClientSession, Optional
+from pymongo.synchronous.client_session import ClientSession
 
 _mongo_thread_local_storage = threading.local()
 
