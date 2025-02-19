@@ -31,6 +31,7 @@ from typing import (
 from bson import CodecOptions, _convert_raw_document_lists_to_streams
 from pymongo import _csot
 from pymongo.asynchronous.cursor import _ConnectionManager
+from pymongo.asynchronous.thread_client_session import get_thread_client_session
 from pymongo.cursor_shared import _CURSOR_CLOSED_ERRORS
 from pymongo.errors import ConnectionFailure, InvalidOperation, OperationFailure
 from pymongo.message import (
@@ -237,7 +238,7 @@ class AsyncCommandCursor(Generic[_DocumentType]):
         self._sock_mgr = None
 
     def _end_session(self) -> None:
-        if self._session and not self._explicit_session:
+        if self._session and not self._explicit_session and get_thread_client_session() is None:
             self._session._end_implicit_session()
             self._session = None
 
